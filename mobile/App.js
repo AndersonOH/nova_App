@@ -15,7 +15,7 @@ export default function App() {
 
   // Login / Cadastro
   const login = () => {
-    fetch(`http://IP_DO_SERVIDOR:8080/api/login?user=${usuario}&pass=${senha}`)
+    fetch(`http://localhost:8080/api/login?user=${usuario}&pass=${senha}`)
       .then(r => r.text())
       .then(r => {
         if (r === "true") {
@@ -27,14 +27,14 @@ export default function App() {
   };
 
   const cadastro = () => {
-    fetch(`http://IP_DO_SERVIDOR:8080/api/cadastro?user=${usuario}&pass=${senha}`)
+    fetch(`http://localhost:8080/api/cadastro?user=${usuario}&pass=${senha}`)
       .then(r => r.text())
       .then(r => alert(r === "true" ? "Cadastrado" : "Usuário existe"));
   };
 
   // Chat
   const conectarChat = () => {
-    const socket = new WebSocket('ws://IP_DO_SERVIDOR:8080/chat');
+    const socket = new WebSocket('ws://localhost:8080/chat');
     socket.onmessage = e => setChat(c => [e.data, ...c]);
     setWsChat(socket);
   };
@@ -48,7 +48,7 @@ export default function App() {
 
   // Feed
   const conectarFeed = () => {
-    const socket = new WebSocket('ws://IP_DO_SERVIDOR:8080/postagem');
+    const socket = new WebSocket('ws://localhost:8080/postagem');
     socket.onmessage = e => {
       let partes = e.data.split("|", 3);
       let usuarioPost = partes[0], tipo = partes[1], conteudo = decodeURIComponent(partes[2]);
