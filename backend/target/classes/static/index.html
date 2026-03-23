@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Sistema Avançado One-Click</title>
+<style>
+body { font-family: Arial; text-align: center; background: #f0f0f0; }
+.tela { display: none; margin-top: 50px; }
+.ativa { display: block; }
+input, button { padding: 8px; margin: 5px; }
+ul { list-style: none; padding: 0; max-height: 150px; overflow-y: auto; }
+video { width: 300px; height: 200px; border: 1px solid #000; margin: 5px; }
+</style>
+</head>
+<body>
+
+<!-- Tela Inicial -->
+<div id="inicio" class="tela ativa">
+    <h1>Bem-vindo</h1>
+    <button onclick="mostrar('login')">Login</button>
+    <button onclick="mostrar('cadastro')">Cadastrar</button>
+</div>
+
+<!-- Tela Login -->
+<div id="login" class="tela">
+    <h2>Login</h2>
+    <input id="loginUser" placeholder="Usuário"><br>
+    <input id="loginPass" type="password" placeholder="Senha"><br>
+    <button onclick="login()">Entrar</button>
+    <button onclick="mostrar('inicio')">Voltar</button>
+</div>
+
+<!-- Tela Cadastro -->
+<div id="cadastro" class="tela">
+    <h2>Cadastro</h2>
+    <input id="cadUser" placeholder="Usuário"><br>
+    <input id="cadPass" type="password" placeholder="Senha"><br>
+    <button onclick="cadastrar()">Cadastrar</button>
+    <button onclick="mostrar('inicio')">Voltar</button>
+</div>
+
+<!-- Tela Menu -->
+<div id="menu" class="tela">
+    <h2>Menu</h2>
+
+    <!-- Lista de itens -->
+    <input id="item" placeholder="Novo item">
+    <button onclick="addItem()">Adicionar</button>
+    <ul id="lista"></ul>
+    <button onclick="removerSelecionado()">Remover Selecionado</button>
+
+    <!-- Chat -->
+    <h3>Chat</h3>
+    <input id="msg"><button onclick="enviar()">Enviar</button>
+    <ul id="chat"></ul>
+
+    <!-- Video / Audio -->
+    <h3>Video / Audio</h3>
+    <video id="localVideo" autoplay muted></video>
+    <video id="remoteVideo" autoplay></video>
+    <button onclick="startCall()">Iniciar Chamada</button>
+
+    <!-- Postagens -->
+    <h3>Postagens (Real-Time)</h3>
+    <input id="postTexto" placeholder="Digite uma mensagem">
+    <button onclick="postarTexto()">Postar Texto</button><br><br>
+    <input type="file" id="postArquivo">
+    <button onclick="postarArquivo()">Postar Arquivo (foto/video/audio)</button>
+    <ul id="feed"></ul>
+
+    <button onclick="logout()">Sair</button>
+</div>
+
+<script>
+let usuario = "";
+let socket;
+let signaling;
+let pc;
+let feedSocket;
+
+// Função para mudar telas
+function mostrar(tela) {
+    document.querySelectorAll('.tela').forEach(d => d.classList.remove('ativa'));
+    document.getElementById(tela).classList.add('ativa');
+
+    if (tela === 'menu') {
+        conectarChat();
+        listarItens();
+        conectarSignaling();
+        conectarFeed();
+    }
+}
+
+// Login
+function login() {
+    usuario = document.getElementById("loginUser").value;
+    let pass = document.getElementById("loginPass").value;
+    fetch(`/api/login?user=${usuario}&pass=${pass}`).then(r => r.text()).then(r => {
+        if (r === "true") {
+            mostrar('menu');
+        } else alert("Erro login");
+    });
+}
+
+// Cadastro
+function cadastrar() {
+    let user = document.getElementById("cadUser").value;
+    let pass = document.getElementById("cadPass").value;
+    fetch(`/api/cadastro?user=${user}&pass=${pass}`).then(r => r.text()).then(r => {
+        if (r === "true") alert("Cadastrado"); else alert("Usuário existe");
+    });
+}
+
+// Logout
+function logout() {
+    usuario = "";
+    mostrar('inicio');
+}
+
+// Itens
+function addItem() {
+    let item = document.getElementById("item").value;
+    fetch(`/api/addItem?user=${usuario}&nome=${item}`).then(() => listarItens());
+}
+
+function listarItens() {
+    fetch(`/api/listItens?user=${usuario}`).then(r => r.json()).then(itens => {
+        let ul = document.getElementById("lista");
+        ul.innerHTML = "";
+        itens.forEach(it => {
+            let li = document.createElement("li");
+            li.textContent = it.nome;
+            li.onclick = () => li.classList.toggle("selecionado");
+            ul.appendChild(li);
+        });
+    });
+}
+
+function removerSelecionado() {
+    let ul = document.getElementById("lista");
+    Array.from(ul.querySelectorAll(".selecionado")).forEach(li => {
+        let id = li.textContent.split("|")[0];
+        fetch(`/api/remItem?user=${usuario}&id=${id}`).then(() => listarItens());
+    });
+}
+
+// Chat
+function conectarChat() {
+    socket = new WebSocket(`ws://${location.host}/chat`);
+    socket.onmessage = function (e) {
+        let li = document.createElement("li");
+        li.textContent = e.data;
+        document.getElementById("chat").appendChild(li);
+    };
+}
+
+function enviar() {
+    let msg = document.getElementById("msg").value;
+    if (msg) {
+        socket.send(usuario + ": " + msg);
+        document.getElementById("msg").value = "";
+    }
+}
+
+// WebRTC
+function conectarSignaling() {
+    signaling = new WebSocket(`ws://${location.host}/signaling`);
+    signaling.onmessage = async (msg) => {
+        let data = JSON.parse(msg.data);
+        if (data.sdp) {
+            await pc.setRemoteDescription(data.sdp);
+            if (data.sdp.type === 'offer') {
+                let ans = await pc.createAnswer();
+                await pc.setLocalDescription(ans);
+                signaling.send(JSON.stringify({ sdp: pc.localDescription }));
+            }
+        }
+        if (data.ice) await pc.addIceCandidate(data.ice);
+    };
+}
+
+async function startCall() {
+    pc = new RTCPeerConnection();
+    pc.onicecandidate = e => { if (e.candidate) signaling.send(JSON.stringify({ ice: e.candidate })); };
+    pc.ontrack = e => document.getElementById("remoteVideo").srcObject = e.streams[0];
+    let stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    document.getElementById("localVideo").srcObject = stream;
+    stream.getTracks().forEach(track => pc.addTrack(track, stream));
+    let offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    signaling.send(JSON.stringify({ sdp: pc.localDescription }));
+}
+
+// Feed
+function conectarFeed() {
+    feedSocket = new WebSocket(`ws://${location.host}/postagem`);
+    feedSocket.onmessage = function (e) {
+        let partes = e.data.split("|", 3);
+        let usuarioPost = partes[0], tipo = partes[1], conteudo = decodeURIComponent(partes[2]);
+        let ul = document.getElementById("feed");
+        let li = document.createElement("li");
+        li.style.border = "1px solid #ccc"; li.style.margin = "5px"; li.style.padding = "5px";
+        li.innerHTML = `<b>${usuarioPost}</b> [${tipo}]<br>`;
+        if (tipo === "texto") li.innerHTML += conteudo;
+        else if (tipo === "foto") li.innerHTML += `<img src="data:image/*;base64,${conteudo}" width="200">`;
+        else if (tipo === "video") li.innerHTML += `<video controls src="data:video/*;base64,${conteudo}" width="300"></video>`;
+        else if (tipo === "audio") li.innerHTML += `<audio controls src="data:audio/*;base64,${conteudo}"></audio>`;
+        ul.insertBefore(li, ul.firstChild);
+    };
+}
+
+function postarTexto() {
+    let texto = document.getElementById("postTexto").value;
+    if (!texto) return;
+    feedSocket.send(`${usuario}|texto|${encodeURIComponent(texto)}`);
+    document.getElementById("postTexto").value = "";
+}
+
+function postarArquivo() {
+    let file = document.getElementById("postArquivo").files[0];
+    if (!file) return;
+    let reader = new FileReader();
+    reader.onload = function (e) {
+        let base64 = e.target.result.split(",")[1];
+        let tipo = "foto";
+        if (file.type.startsWith("video")) tipo = "video";
+        else if (file.type.startsWith("audio")) tipo = "audio";
+        feedSocket.send(`${usuario}|${tipo}|${encodeURIComponent(base64)}`);
+    };
+    reader.readAsDataURL(file);
+}
+</script>
+
+</body>
+</html>

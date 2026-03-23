@@ -2,6 +2,7 @@ package com.sistema.repository;
 
 import com.sistema.model.*;
 import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
 
 public interface UsuarioRepository extends JpaRepository<Usuario, String> {}
 public interface ItemRepository extends JpaRepository<Item, Long> {}
