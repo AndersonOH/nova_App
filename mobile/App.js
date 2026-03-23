@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, FlatList, Text, ScrollView } from 'react-native';
+import { View, TextInput, Button, FlatList, Text, ScrollView, Image } from 'react-native';
 import { RTCView, mediaDevices, RTCPeerConnection } from 'react-native-webrtc';
 
 export default function App() {
@@ -95,9 +95,15 @@ export default function App() {
         keyExtractor={(item, i) => i.toString()}
         renderItem={({ item }) => {
           if (item.tipo === "texto") return <Text>{item.usuario}: {item.conteudo}</Text>;
-          if (item.tipo === "foto") return <Text>{item.usuario} postou uma foto</Text>;
-          if (item.tipo === "video") return <Text>{item.usuario} postou um vídeo</Text>;
-          if (item.tipo === "audio") return <Text>{item.usuario} postou um áudio</Text>;
+          if (item.tipo === "foto") return (
+            <View>
+              <Text>{item.usuario} postou uma foto:</Text>
+              <Image source={{ uri: `data:image/*;base64,${item.conteudo}` }} style={{ width: 200, height: 200 }} />
+            </View>
+          );
+          if (item.tipo === "video") return <Text>{item.usuario} postou um vídeo (não suportado ainda)</Text>;
+          if (item.tipo === "audio") return <Text>{item.usuario} postou um áudio (não suportado ainda)</Text>;
+          return <Text>{item.usuario}: {item.conteudo}</Text>;
         }}
       />
 

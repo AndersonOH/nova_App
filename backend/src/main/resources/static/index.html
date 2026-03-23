@@ -114,6 +114,9 @@ function cadastrar() {
 // Logout
 function logout() {
     usuario = "";
+    if (socket) socket.close();
+    if (feedSocket) feedSocket.close();
+    if (signaling) signaling.close();
     mostrar('inicio');
 }
 
