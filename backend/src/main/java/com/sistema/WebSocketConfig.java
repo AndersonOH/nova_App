@@ -2,6 +2,9 @@ package com.sistema;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.*;
+import com.sistema.websocket.ChatWebSocketHandler;
+import com.sistema.websocket.PostagemWebSocketHandler;
+import com.sistema.websocket.SignalingWebSocketHandler;
 
 @Configuration
 @EnableWebSocket
