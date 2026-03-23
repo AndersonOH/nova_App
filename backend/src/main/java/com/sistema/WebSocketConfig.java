@@ -1,3 +1,7 @@
+/*
+ * Configuração WebSocket para o sistema avançado
+ * Habilita conexões em tempo real para chat, feed e signaling WebRTC
+ */
 package com.sistema;
 
 import org.springframework.context.annotation.Configuration;
