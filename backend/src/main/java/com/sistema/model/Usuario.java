@@ -1,6 +1,7 @@
 package com.sistema.model;
 
 import jakarta.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -12,10 +13,13 @@ public class Usuario {
     @OneToMany(cascade = CascadeType.ALL)
     private List<Item> itens;
 
-    public Usuario() {}
+    public Usuario() {
+        this.itens = new ArrayList<>();
+    }
     public Usuario(String username, String senha) {
         this.username = username;
         this.senha = senha;
+        this.itens = new ArrayList<>();
     }
     // getters and setters
     public String getUsername() { return username; }
