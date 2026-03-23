@@ -10,6 +10,7 @@ export default function App() {
   const [feed, setFeed] = useState([]);
   const [wsChat, setWsChat] = useState(null);
   const [wsFeed, setWsFeed] = useState(null);
+  const [wsSignaling, setWsSignaling] = useState(null);
   const [pc, setPc] = useState(null);
   const [localStream, setLocalStream] = useState(null);
 
@@ -21,6 +22,7 @@ export default function App() {
         if (r === "true") {
           conectarChat();
           conectarFeed();
+          conectarSignaling();
           alert("Login OK");
         } else alert("Erro login");
       });
@@ -57,6 +59,29 @@ export default function App() {
     setWsFeed(socket);
   };
 
+  // Signaling
+  const conectarSignaling = () => {
+    const socket = new WebSocket('ws://localhost:8080/signaling');
+    socket.onmessage = e => {
+      // Handle signaling messages
+      const message = JSON.parse(e.data);
+      if (pc) {
+        if (message.type === 'offer') {
+          pc.setRemoteDescription(new RTCSessionDescription(message));
+          pc.createAnswer().then(answer => {
+            pc.setLocalDescription(answer);
+            socket.send(JSON.stringify({ type: 'answer', sdp: answer.sdp }));
+          });
+        } else if (message.type === 'answer') {
+          pc.setRemoteDescription(new RTCSessionDescription(message));
+        } else if (message.type === 'candidate') {
+          pc.addIceCandidate(new RTCIceCandidate(message.candidate));
+        }
+      }
+    };
+    setWsSignaling(socket);
+  };
+
   const postarTexto = (texto) => {
     if (texto && wsFeed) wsFeed.send(`${usuario}|texto|${encodeURIComponent(texto)}`);
   };
@@ -65,10 +90,22 @@ export default function App() {
   const startCall = async () => {
     const pcLocal = new RTCPeerConnection();
     pcLocal.onaddstream = e => setLocalStream(e.stream);
+    pcLocal.onicecandidate = e => {
+      if (e.candidate && wsSignaling) {
+        wsSignaling.send(JSON.stringify({ type: 'candidate', candidate: e.candidate }));
+      }
+    };
     const stream = await mediaDevices.getUserMedia({ audio: true, video: true });
     pcLocal.addStream(stream);
     setPc(pcLocal);
     setLocalStream(stream);
+
+    // Create offer and send
+    const offer = await pcLocal.createOffer();
+    await pcLocal.setLocalDescription(offer);
+    if (wsSignaling) {
+      wsSignaling.send(JSON.stringify({ type: 'offer', sdp: offer.sdp }));
+    }
   };
 
   return (
