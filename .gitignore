@@ -1,0 +1,24 @@
+# Maven
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# H2 Database
+backend/src/main/resources/data/
+
+# Node.js
+mobile/node_modules/
+mobile/android/app/build/
+mobile/ios/build/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

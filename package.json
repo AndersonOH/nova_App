@@ -1,0 +1,18 @@
+{
+  "name": "nova_app",
+  "version": "1.0.0",
+  "description": "Sistema avançado cross-platform com chat, feed multimídia e WebRTC",
+  "scripts": {
+    "start": "cd backend && mvn spring-boot:run",
+    "build": "cd backend && mvn clean package",
+    "mobile": "cd mobile && npm install && npx react-native run-android",
+    "test": "cd backend && mvn test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AndersonOH/nova_App.git"
+  },
+  "keywords": ["spring-boot", "react-native", "webrtc", "chat", "social"],
+  "author": "AndersonOH",
+  "license": "MIT"
+}
