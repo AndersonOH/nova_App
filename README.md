@@ -29,11 +29,24 @@ Para facilitar futuras modificações e execuções:
 ## 1️⃣ Pré-requisitos
 
 - Java 17+
-- Maven
+- Maven 3.6+
 - Node.js 18+ / npm
 - Android Studio (para Android)
 - Xcode (para iOS, macOS)
 - Firewall liberado para WebSocket (porta 8080)
+
+### Instalação do Maven (se não tiver):
+
+**Windows:**
+1. Baixe de: https://maven.apache.org/download.cgi
+2. Descompacte em `C:\apache-maven-3.x.x`
+3. Adicione ao PATH: `C:\apache-maven-3.x.x\bin`
+4. Teste: `mvn -version`
+
+**Via Chocolatey (recomendado):**
+```
+choco install maven
+```
 
 ---
 
@@ -102,3 +115,26 @@ npx react-native run-ios
 - Backend usa H2, pode ser trocado por MySQL/Postgres para produção.  
 - Front-end web e mobile compartilham mesmo backend e WebSockets.  
 - WebRTC integrado permite chamadas cross-platform.
+- Repositórios JPA organizados em arquivos separados para melhor manutenção.
+
+---
+
+## 9️⃣ Status do Projeto
+
+✅ **Concluído:**
+- Estrutura completa do projeto
+- Backend Spring Boot com APIs REST e WebSockets
+- Frontend web com interface completa
+- App mobile React Native com WebRTC
+- Banco H2 configurado com dados iniciais
+- Chat em tempo real
+- Feed multimídia
+- Chamadas de áudio/vídeo WebRTC
+- Deploy no GitHub
+- Correção de erros de compilação
+- Organização dos repositórios JPA
+
+⚠️ **Para executar:**
+1. Instale Maven (veja seção 1)
+2. Execute `mvn compile` no diretório backend
+3. Execute `mvn spring-boot:run` para iniciar o servidor
