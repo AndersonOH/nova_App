@@ -170,28 +170,29 @@ function conectarSignaling() {
     signaling = new WebSocket(`ws://${location.host}/signaling`);
     signaling.onmessage = async (msg) => {
         let data = JSON.parse(msg.data);
-        if (data.sdp) {
-            await pc.setRemoteDescription(data.sdp);
-            if (data.sdp.type === 'offer') {
-                let ans = await pc.createAnswer();
-                await pc.setLocalDescription(ans);
-                signaling.send(JSON.stringify({ sdp: pc.localDescription }));
-            }
+        if (data.type === 'offer') {
+            await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: data.sdp }));
+            let ans = await pc.createAnswer();
+            await pc.setLocalDescription(ans);
+            signaling.send(JSON.stringify({ type: 'answer', sdp: ans.sdp }));
+        } else if (data.type === 'answer') {
+            await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: data.sdp }));
+        } else if (data.type === 'candidate') {
+            await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
         }
-        if (data.ice) await pc.addIceCandidate(data.ice);
     };
 }
 
 async function startCall() {
     pc = new RTCPeerConnection();
-    pc.onicecandidate = e => { if (e.candidate) signaling.send(JSON.stringify({ ice: e.candidate })); };
+    pc.onicecandidate = e => { if (e.candidate) signaling.send(JSON.stringify({ type: 'candidate', candidate: e.candidate })); };
     pc.ontrack = e => document.getElementById("remoteVideo").srcObject = e.streams[0];
     let stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     document.getElementById("localVideo").srcObject = stream;
     stream.getTracks().forEach(track => pc.addTrack(track, stream));
     let offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    signaling.send(JSON.stringify({ sdp: pc.localDescription }));
+    signaling.send(JSON.stringify({ type: 'offer', sdp: offer.sdp }));
 }
 
 // Feed
