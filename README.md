@@ -11,6 +11,21 @@ Projeto cross-platform completo com:
 
 ---
 
+## 0️⃣ Atalhos Rápidos (Windows)
+
+Para facilitar futuras modificações e execuções:
+
+- **`start.bat`**: Menu principal com opções
+- **`run.bat`**: Executa o backend diretamente
+- **`run-mobile.bat`**: Executa o mobile diretamente
+
+**Como usar:**
+1. Clique duplo em `start.bat`
+2. Escolha a opção desejada
+3. Pronto!
+
+---
+
 ## 1️⃣ Pré-requisitos
 
 - Java 17+
