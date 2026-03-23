@@ -2,7 +2,7 @@
 
 Projeto cross-platform completo com:
 
-- Backend Java Spring Boot + WebSockets + H2
+- Backend Java Spring Boot 3.2.3 + WebSockets + H2
 - Front-end Web (HTML/JS)
 - Mobile Android/iOS (React Native)
 - Chat em tempo real
