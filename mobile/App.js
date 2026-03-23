@@ -25,7 +25,8 @@ export default function App() {
           conectarSignaling();
           alert("Login OK");
         } else alert("Erro login");
-      });
+      })
+      .catch(e => alert("Erro de conexão: " + e.message));
   };
 
   const cadastro = () => {
@@ -36,9 +37,15 @@ export default function App() {
 
   // Chat
   const conectarChat = () => {
-    const socket = new WebSocket('ws://localhost:8080/chat');
-    socket.onmessage = e => setChat(c => [e.data, ...c]);
-    setWsChat(socket);
+    try {
+      const socket = new WebSocket('ws://localhost:8080/chat');
+      socket.onopen = () => console.log('Chat conectado');
+      socket.onerror = e => console.log('Erro chat:', e);
+      socket.onmessage = e => setChat(c => [e.data, ...c]);
+      setWsChat(socket);
+    } catch (e) {
+      alert('Erro ao conectar chat: ' + e.message);
+    }
   };
 
   const enviarChat = () => {
@@ -50,36 +57,51 @@ export default function App() {
 
   // Feed
   const conectarFeed = () => {
-    const socket = new WebSocket('ws://localhost:8080/postagem');
-    socket.onmessage = e => {
-      let partes = e.data.split("|", 3);
-      let usuarioPost = partes[0], tipo = partes[1], conteudo = decodeURIComponent(partes[2]);
-      setFeed(f => [{ usuario: usuarioPost, tipo, conteudo }, ...f]);
-    };
-    setWsFeed(socket);
+    try {
+      const socket = new WebSocket('ws://localhost:8080/postagem');
+      socket.onopen = () => console.log('Feed conectado');
+      socket.onerror = e => console.log('Erro feed:', e);
+      socket.onmessage = e => {
+        let partes = e.data.split("|", 3);
+        let usuarioPost = partes[0], tipo = partes[1], conteudo = decodeURIComponent(partes[2]);
+        setFeed(f => [{ usuario: usuarioPost, tipo, conteudo }, ...f]);
+      };
+      setWsFeed(socket);
+    } catch (e) {
+      alert('Erro ao conectar feed: ' + e.message);
+    }
   };
 
   // Signaling
   const conectarSignaling = () => {
-    const socket = new WebSocket('ws://localhost:8080/signaling');
-    socket.onmessage = e => {
-      // Handle signaling messages
-      const message = JSON.parse(e.data);
-      if (pc) {
-        if (message.type === 'offer') {
-          pc.setRemoteDescription(new RTCSessionDescription(message));
-          pc.createAnswer().then(answer => {
-            pc.setLocalDescription(answer);
-            socket.send(JSON.stringify({ type: 'answer', sdp: answer.sdp }));
-          });
-        } else if (message.type === 'answer') {
-          pc.setRemoteDescription(new RTCSessionDescription(message));
-        } else if (message.type === 'candidate') {
-          pc.addIceCandidate(new RTCIceCandidate(message.candidate));
+    try {
+      const socket = new WebSocket('ws://localhost:8080/signaling');
+      socket.onopen = () => console.log('Signaling conectado');
+      socket.onerror = e => console.log('Erro signaling:', e);
+      socket.onmessage = e => {
+        try {
+          const message = JSON.parse(e.data);
+          if (pc) {
+            if (message.type === 'offer') {
+              pc.setRemoteDescription(new RTCSessionDescription(message));
+              pc.createAnswer().then(answer => {
+                pc.setLocalDescription(answer);
+                socket.send(JSON.stringify({ type: 'answer', sdp: answer.sdp }));
+              });
+            } else if (message.type === 'answer') {
+              pc.setRemoteDescription(new RTCSessionDescription(message));
+            } else if (message.type === 'candidate') {
+              pc.addIceCandidate(new RTCIceCandidate(message.candidate));
+            }
+          }
+        } catch (err) {
+          console.log('Erro ao processar signaling:', err);
         }
-      }
-    };
-    setWsSignaling(socket);
+      };
+      setWsSignaling(socket);
+    } catch (e) {
+      alert('Erro ao conectar signaling: ' + e.message);
+    }
   };
 
   const postarTexto = (texto) => {
@@ -88,23 +110,26 @@ export default function App() {
 
   // WebRTC
   const startCall = async () => {
-    const pcLocal = new RTCPeerConnection();
-    pcLocal.onaddstream = e => setLocalStream(e.stream);
-    pcLocal.onicecandidate = e => {
-      if (e.candidate && wsSignaling) {
-        wsSignaling.send(JSON.stringify({ type: 'candidate', candidate: e.candidate }));
-      }
-    };
-    const stream = await mediaDevices.getUserMedia({ audio: true, video: true });
-    pcLocal.addStream(stream);
-    setPc(pcLocal);
-    setLocalStream(stream);
+    try {
+      const pcLocal = new RTCPeerConnection();
+      pcLocal.onicecandidate = e => {
+        if (e.candidate && wsSignaling) {
+          wsSignaling.send(JSON.stringify({ type: 'candidate', candidate: e.candidate }));
+        }
+      };
+      const stream = await mediaDevices.getUserMedia({ audio: true, video: true });
+      pcLocal.addStream(stream);
+      setPc(pcLocal);
+      setLocalStream(stream);
 
-    // Create offer and send
-    const offer = await pcLocal.createOffer();
-    await pcLocal.setLocalDescription(offer);
-    if (wsSignaling) {
-      wsSignaling.send(JSON.stringify({ type: 'offer', sdp: offer.sdp }));
+      // Create offer and send
+      const offer = await pcLocal.createOffer();
+      await pcLocal.setLocalDescription(offer);
+      if (wsSignaling) {
+        wsSignaling.send(JSON.stringify({ type: 'offer', sdp: offer.sdp }));
+      }
+    } catch (e) {
+      alert('Erro ao iniciar chamada: ' + e.message);
     }
   };
 
